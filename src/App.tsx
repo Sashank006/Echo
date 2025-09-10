@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+// @ts-nocheck
+import React, { useState,useRef } from 'react';
 import Editor from '@monaco-editor/react';
 import { 
   AppBar, 
@@ -28,7 +29,34 @@ function App() {
   const [isListening, setIsListening] = useState(false);
   const [spokenText, setSpokenText] = useState('');
   const [generatedCode, setGeneratedCode] = useState('Welcome to Echo!, Your generated Python code will appear here!')
+  const recognitionRef = useRef(null);
 
+const handleVoiceToggle = () => {
+  if (!isListening) {
+    setSpokenText('');
+    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    recognitionRef.current = recognition;
+    
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    
+    recognition.onresult = (event) => {
+   
+      const latest = event.results[event.results.length - 1];
+      const transcript = latest[0].transcript;
+      setSpokenText(transcript);
+    };
+    
+    recognition.start();
+    setIsListening(true);
+  } else {
+
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+    }
+    setIsListening(false);
+  }
+};
   return (
     <ThemeProvider theme={darkTheme}>
       <CssBaseline/>
@@ -51,7 +79,7 @@ function App() {
                 size='large'
                 startIcon={isListening ? <MicOff/> : <Mic/>}
                 color={isListening ? 'error':'primary'}
-                onClick={()=> setIsListening(!isListening)}
+                onClick={handleVoiceToggle}
                 sx={{mb:3 , py:2}}
                 > {isListening ? 'Stop Listening' : 'Start Voice Coding'}</Button>
                 <Typography>{spokenText || "Your spoken text will appear here"}</Typography>
