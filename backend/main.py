@@ -25,13 +25,55 @@ else:
 
 class CodeGenerationRequest(BaseModel):
     prompt: str
-    language: str = "python"  
+   
 
 class CodeGenerationResponse(BaseModel):
     code: str
     explanation: str
-    language: str
+   
+@app.post("/generate")
+async def generate_code(request: CodeGenerationRequest):
+    try:
+        if not GEMINI_API_KEY:
+            raise HTTPException(status_code=500, detail="Gemini API key not configured")
+        prompt = f"""
+            You are a Python expert. Generate clean, working code for: {request.prompt}
 
+            Return your response in exactly this format:
+
+            CODE:
+            ```python
+            [your code here]```
+
+            EXPLANATION:
+            [brief explanation of what the code does]
+            """
+        response = model.generate_content(prompt)
+        full_response = response.text
+    
+        if "CODE:" in full_response and "EXPLANATION:" in full_response:
+            parts = full_response.split("EXPLANATION:")
+            code_section = parts[0].replace("CODE:", "").strip()
+            explanation_section = parts[1].strip()
+
+            if "```python" in code_section:
+                code_start = code_section.find("```python") + len("```python")
+                code_end = code_section.find("```", code_start)
+                clean_code = code_section[code_start:code_end].strip()
+            else:
+                clean_code = code_section.strip()
+                
+            return CodeGenerationResponse(
+                code=clean_code,
+                explanation=explanation_section
+            )
+        else:
+            return CodeGenerationResponse(
+                code=full_response,
+                explanation="Generated response (format parsing failed)"
+            )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error generating code: {str(e)}")
 
 @app.get("/health")
 async def health_check():
