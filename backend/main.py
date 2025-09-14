@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import google.generativeai as genai
+import google.generativeai as genai # type: ignore
 import os
 
 load_dotenv()  
