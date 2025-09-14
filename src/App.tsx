@@ -16,7 +16,6 @@ import {
   CssBaseline
 } from '@mui/material';
 import { Mic, MicOff } from '@mui/icons-material';
-
 const darkTheme = createTheme({
   palette: {
     mode: 'dark',
@@ -30,33 +29,69 @@ function App() {
   const [spokenText, setSpokenText] = useState('');
   const [generatedCode, setGeneratedCode] = useState('Welcome to Echo!, Your generated Python code will appear here!')
   const recognitionRef = useRef(null);
+  const [codeExplanation, setCodeExplanation] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [uploadedFile, setUploadedFile] = useState(null);
+  const [uploadedCode, setUploadedCode] = useState('');
 
-const handleVoiceToggle = () => {
-  if (!isListening) {
-    setSpokenText('');
-    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-    recognitionRef.current = recognition;
-    
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    
-    recognition.onresult = (event) => {
-   
-      const latest = event.results[event.results.length - 1];
-      const transcript = latest[0].transcript;
-      setSpokenText(transcript);
-    };
-    
-    recognition.start();
-    setIsListening(true);
-  } else {
-
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
+  const handleFileUpload = async (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      const text = await file.text();
+      setUploadedFile(file.name);
+      setUploadedCode(text);
+      setGeneratedCode(text); 
     }
-    setIsListening(false);
-  }
-};
+  };
+
+  const handleVoiceToggle = () => {
+    if (!isListening) {
+      setSpokenText('');
+      const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+      recognitionRef.current = recognition;
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.onresult = (event) => {
+        const latest = event.results[event.results.length - 1];
+        const transcript = latest[0].transcript;
+        setSpokenText(transcript);
+      };
+      recognition.onerror = (event) => {
+        console.error('Speech recognition error:', event.error);
+        setSpokenText('Speech recognition failed. Please try again.');
+        setIsListening(false);
+      };
+      recognition.start();
+      setIsListening(true);
+    } else {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      setIsListening(false);
+    }
+  };
+
+  const handleGenerateCode = async () => {
+    setIsGenerating(true);
+    try {
+      const response = await fetch('http://localhost:8000/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ prompt: spokenText })
+      });
+      const data = await response.json();
+      setGeneratedCode(data.code);
+      setCodeExplanation(data.explanation);
+    } catch (error) {
+      console.error('Error:', error);
+      setGeneratedCode('Error generating code. Please try again.');
+    } finally{
+      setIsGenerating(false);
+    }
+  };
+
   return (
     <ThemeProvider theme={darkTheme}>
       <CssBaseline/>
@@ -83,6 +118,33 @@ const handleVoiceToggle = () => {
                 sx={{mb:3 , py:2}}
                 > {isListening ? 'Stop Listening' : 'Start Voice Coding'}</Button>
                 <Typography>{spokenText || "Your spoken text will appear here"}</Typography>
+                <Button 
+                variant='contained'
+                size='medium'
+                fullWidth
+                disabled={isGenerating}
+                onClick={handleGenerateCode}
+                sx={{mb:2,mt:1}}>{isGenerating ? 'Generating...' : 'Generate'}</Button>
+                <Box sx={{mt:2}}>
+                  <input
+                    type="file"
+                    accept=".py"
+                    onChange={handleFileUpload}
+                    style={{display: 'none'}}
+                    id="file-upload"
+                  />
+                  <label htmlFor="file-upload">
+                    <Button variant="outlined" component="span" fullWidth>
+                      Upload Python File
+                    </Button>
+                  </label>
+                </Box>
+                {codeExplanation && (
+                  <Paper sx={{p:2, mt:2, bgcolor:'background.default'}}>
+                    <Typography variant="subtitle2" color="primary">Code Explanation:</Typography>
+                    <Typography variant="body2">{codeExplanation}</Typography>
+                  </Paper>
+                )}
                 <Typography variant="h6" gutterBottom>Available Commands:</Typography>
                 <List dense>
                   {['Reverse a string', 'Create for loop', 'Find max in list', 'Sort a list', 'Print hello world'].map((command) => (
