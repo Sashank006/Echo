@@ -27,6 +27,7 @@ else:
 
 class CodeGenerationRequest(BaseModel):
     prompt: str
+    existing_code: str = "" 
    
 
 class CodeGenerationResponse(BaseModel):
@@ -38,18 +39,38 @@ async def generate_code(request: CodeGenerationRequest):
     try:
         if not GEMINI_API_KEY:
             raise HTTPException(status_code=500, detail="Gemini API key not configured")
-        prompt = f"""
-            You are a Python expert. Generate clean, working code for: {request.prompt}
+        if not request.prompt or request.prompt.strip() == "":
+            raise HTTPException(status_code=400, detail="Prompt cannot be empty")
+        if request.existing_code:
+            prompt = f"""
+            You are a Python expert. The user has this existing code:
+        ```python
+            {request.existing_code}```
+        User request: {request.prompt}
 
-            Return your response in exactly this format:
+        Generate clean, working code that addresses their request. If they're asking to modify existing code, build upon what they have.
 
-            CODE:
-            ```python
-            [your code here]```
+        Return your response in exactly this format:
 
+        CODE:
+           [your code here]```
+            
             EXPLANATION:
-            [brief explanation of what the code does]
-            """
+            [brief explanation of what the code does or what changes were made]
+    """
+        else:
+            prompt = f"""
+                You are a Python expert. Generate clean, working code for: {request.prompt}
+
+                Return your response in exactly this format:
+
+                CODE:
+                ```python
+                [your code here]```
+
+                EXPLANATION:
+                [brief explanation of what the code does]
+                """
         response = model.generate_content(prompt)
         full_response = response.text
     

@@ -33,6 +33,7 @@ function App() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [uploadedFile, setUploadedFile] = useState(null);
   const [uploadedCode, setUploadedCode] = useState('');
+  const [conversationHistory, setConversationHistory] = useState([]);
 
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];
@@ -79,11 +80,20 @@ function App() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ prompt: spokenText })
+        body: JSON.stringify({ 
+          prompt: spokenText,
+          existing_code: uploadedCode 
+        })
       });
       const data = await response.json();
       setGeneratedCode(data.code);
       setCodeExplanation(data.explanation);
+      setConversationHistory(prev => [...prev, {
+        prompt: spokenText,
+        code: data.code,
+        explanation: data.explanation,
+        timestamp: new Date().toLocaleTimeString()
+      }]);
     } catch (error) {
       console.error('Error:', error);
       setGeneratedCode('Error generating code. Please try again.');
@@ -122,7 +132,7 @@ function App() {
                 variant='contained'
                 size='medium'
                 fullWidth
-                disabled={isGenerating}
+                disabled={isGenerating || !spokenText.trim()} 
                 onClick={handleGenerateCode}
                 sx={{mb:2,mt:1}}>{isGenerating ? 'Generating...' : 'Generate'}</Button>
                 <Box sx={{mt:2}}>
@@ -157,22 +167,45 @@ function App() {
             </Box>
 
             <Box sx={{ width:'700px' , p:2}}> {/*right panel*/}
-              <Paper sx= {{height:'100%', overflow:'hidden'}}>
-                <Editor
-                  height='400px'
-                  theme="vs-dark"
-                  defaultLanguage="python" 
-                  value={generatedCode}   
-                  onChange={(value) => setGeneratedCode(value || '')}
-                  options={{
-                    minimap: { enabled: false },
-                    fontSize: 14,
-                    lineNumbers: 'on',
-                    roundedSelection: false,
-                    scrollBeyondLastLine: false,
-                    automaticLayout: true,
-                  }}
-                />
+              <Paper sx= {{height:'100%', overflow:'hidden', p: 2}}>
+                <Box sx={{ display: 'flex', width: '100%', gap: 2, height: '100%' }}>
+                  <Box sx={{ flex: 1 }}>
+                    <Typography variant="subtitle2" sx={{ mb: 1 }}>Original Code</Typography>
+                    <Editor
+                      height="calc(100% - 30px)"
+                      theme="vs-dark"
+                      defaultLanguage="python" 
+                      value={uploadedCode || 'No file uploaded yet...'}   
+                      onChange={(value) => setUploadedCode(value || '')}
+                      options={{
+                        minimap: { enabled: false },
+                        fontSize: 14,
+                        lineNumbers: 'on',
+                        roundedSelection: false,
+                        scrollBeyondLastLine: false,
+                        automaticLayout: true,
+                      }}
+                    />
+                  </Box>
+                  <Box sx={{ flex: 1 }}>
+                    <Typography variant="subtitle2" sx={{ mb: 1 }}>Generated Code</Typography>
+                    <Editor
+                      height="calc(100% - 30px)"
+                      theme="vs-dark"
+                      defaultLanguage="python" 
+                      value={generatedCode}   
+                      onChange={(value) => setGeneratedCode(value || '')}
+                      options={{
+                        minimap: { enabled: false },
+                        fontSize: 14,
+                        lineNumbers: 'on',
+                        roundedSelection: false,
+                        scrollBeyondLastLine: false,
+                        automaticLayout: true,
+                      }}
+                    />
+                  </Box>
+                </Box>
               </Paper>
             </Box>
           </Box>
