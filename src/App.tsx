@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React, { useState,useRef } from 'react';
+import React, { useState,useRef,useEffect } from 'react';
 import Editor from '@monaco-editor/react';
 import { 
   AppBar, 
@@ -34,6 +34,17 @@ function App() {
   const [uploadedFile, setUploadedFile] = useState(null);
   const [uploadedCode, setUploadedCode] = useState('');
   const [conversationHistory, setConversationHistory] = useState([]);
+  const [pyodide, setPyodide] = useState(null);
+  const [consoleOutput, setConsoleOutput] = useState('');
+  const [isRunning, setIsRunning] = useState(false);
+
+  useEffect(() => {
+    const initPyodide = async () => {
+      const pyodideInstance = await loadPyodide();
+      setPyodide(pyodideInstance);
+    };
+    initPyodide();
+  }, []);
 
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];
@@ -101,6 +112,30 @@ function App() {
       setIsGenerating(false);
     }
   };
+
+    const handleRunCode = () => {
+      if (!pyodide) {
+        setConsoleOutput('Python runtime still loading...');
+        return;
+      }
+      try {
+        setIsRunning(true);
+        setConsoleOutput(''); 
+        pyodide.runPython(`
+          import sys
+          from io import StringIO
+          old_stdout = sys.stdout
+          sys.stdout = captured_output = StringIO()
+        `);
+        pyodide.runPython(generatedCode);
+        const output = pyodide.runPython('captured_output.getvalue()');
+        setConsoleOutput(output || 'Code executed successfully (no output)');
+      } catch (error) {
+        setConsoleOutput(`Error: ${error.message}`);
+      } finally {
+        setIsRunning(false);
+      }
+    };
 
   return (
     <ThemeProvider theme={darkTheme}>
@@ -188,22 +223,41 @@ function App() {
                     />
                   </Box>
                   <Box sx={{ flex: 1 }}>
-                    <Typography variant="subtitle2" sx={{ mb: 1 }}>Generated Code</Typography>
-                    <Editor
-                      height="calc(100% - 30px)"
-                      theme="vs-dark"
-                      defaultLanguage="python" 
-                      value={generatedCode}   
-                      onChange={(value) => setGeneratedCode(value || '')}
-                      options={{
-                        minimap: { enabled: false },
-                        fontSize: 14,
-                        lineNumbers: 'on',
-                        roundedSelection: false,
-                        scrollBeyondLastLine: false,
-                        automaticLayout: true,
-                      }}
-                    />
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                      <Typography variant="subtitle2">Generated Code</Typography>
+                      <Button 
+                        size="small" 
+                        variant="contained"
+                        onClick={handleRunCode}
+                      >
+                        ▶ Run Code
+                      </Button>
+                    </Box>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', height: 'calc(100% - 40px)' }}>
+                      <Box sx={{ flex: '0.7' }}>
+                        <Editor
+                          height="100%"
+                          theme="vs-dark"
+                          defaultLanguage="python" 
+                          value={generatedCode}   
+                          onChange={(value) => setGeneratedCode(value || '')}
+                          options={{
+                            minimap: { enabled: false },
+                            fontSize: 14,
+                            lineNumbers: 'on',
+                            roundedSelection: false,
+                            scrollBeyondLastLine: false,
+                            automaticLayout: true,
+                          }}
+                        />
+                      </Box>
+                      <Box sx={{ flex: '0.3', bgcolor: 'background.default', p: 1 }}>
+                        <Typography variant="caption">Console Output:</Typography>
+                        <Typography variant="body2" component="pre" sx={{ whiteSpace: 'pre-wrap' }}>
+                          {consoleOutput}
+                        </Typography>
+                      </Box>
+                    </Box>
                   </Box>
                 </Box>
               </Paper>
@@ -218,3 +272,4 @@ function App() {
 }
 
 export default App;
+                  
