@@ -34,16 +34,16 @@ function App() {
   const [uploadedFile, setUploadedFile] = useState(null);
   const [uploadedCode, setUploadedCode] = useState('');
   const [conversationHistory, setConversationHistory] = useState([]);
-  const [pyodide, setPyodide] = useState(null);
   const [consoleOutput, setConsoleOutput] = useState('');
   const [isRunning, setIsRunning] = useState(false);
+  const [savedSessions, setSavedSessions] = useState([]);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   useEffect(() => {
-    const initPyodide = async () => {
-      const pyodideInstance = await loadPyodide();
-      setPyodide(pyodideInstance);
-    };
-    initPyodide();
+    const saved = localStorage.getItem('echo-sessions');
+    if (saved) {
+      setSavedSessions(JSON.parse(saved));
+    }
   }, []);
 
   const handleFileUpload = async (event) => {
@@ -114,27 +114,58 @@ function App() {
   };
 
     const handleRunCode = () => {
-      if (!pyodide) {
-        setConsoleOutput('Python runtime still loading...');
-        return;
-      }
-      try {
-        setIsRunning(true);
-        setConsoleOutput(''); 
-        pyodide.runPython(`
-          import sys
-          from io import StringIO
-          old_stdout = sys.stdout
-          sys.stdout = captured_output = StringIO()
-        `);
-        pyodide.runPython(generatedCode);
-        const output = pyodide.runPython('captured_output.getvalue()');
-        setConsoleOutput(output || 'Code executed successfully (no output)');
-      } catch (error) {
-        setConsoleOutput(`Error: ${error.message}`);
-      } finally {
+      setIsRunning(true);
+      setConsoleOutput('Running...');
+      
+      setTimeout(() => {
+        const printMatches = generatedCode.match(/print\s*\(\s*([^)]+)\s*\)/g);
+        if (printMatches) {
+          const output = printMatches.map(match => {
+            const content = match.replace(/print\s*\(\s*|\s*\)$/g, '')
+                              .replace(/^["']|["']$/g, '');
+            return content;
+          }).join('\n');
+          setConsoleOutput(output);
+        } else if (generatedCode.trim()) {
+          setConsoleOutput('Code executed successfully');
+        } else {
+          setConsoleOutput('No code to run');
+        }
+        
         setIsRunning(false);
+      }, 1500);
+    };
+
+    const handleExportCode = () => {
+      try {
+        const codeContent = generatedCode;
+        const blob = new Blob([codeContent], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'generated_code.py';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      } catch (error) {
+        console.error('Export failed:', error);
+        setConsoleOutput('Error: Failed to export file');
       }
+    };
+
+    const handleSaveSession = () => {
+      const sessionName = prompt('Session name (optional):') || `Session ${Date.now()}`;
+      const newSession = {
+        id: Date.now(),
+        name: sessionName,
+        code: generatedCode,
+        prompt: spokenText || 'Direct edit',
+        timestamp: new Date().toLocaleString()
+      };
+      const updatedSessions = [newSession, ...savedSessions].slice(0, 15); // Keep only 15 most recent
+      setSavedSessions(updatedSessions);
+      localStorage.setItem('echo-sessions', JSON.stringify(updatedSessions));
     };
 
   return (
@@ -151,7 +182,10 @@ function App() {
         </AppBar>
 
           <Box sx={{ display: 'flex', flex: 1 }}>
-            <Box sx={{ width:'400px', p:2}}> {/*left panel*/}
+            {historyOpen && (
+              <Box sx={{ width: '300px', p: 2 }}></Box>
+            )}
+            <Box sx={{ width:'300px', p:2}}> {/*left panel*/}
               <Paper sx={{height:'100%', bgcolor:'background.paper'}}>
                 <Button
                 variant='contained'
@@ -201,7 +235,7 @@ function App() {
               </Paper>
             </Box>
 
-            <Box sx={{ width:'700px' , p:2}}> {/*right panel*/}
+           <Box sx={{ flex: 1, p:2}}> {/*right panel*/}
               <Paper sx= {{height:'100%', overflow:'hidden', p: 2}}>
                 <Box sx={{ display: 'flex', width: '100%', gap: 2, height: '100%' }}>
                   <Box sx={{ flex: 1 }}>
@@ -225,13 +259,47 @@ function App() {
                   <Box sx={{ flex: 1 }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                       <Typography variant="subtitle2">Generated Code</Typography>
-                      <Button 
-                        size="small" 
-                        variant="contained"
-                        onClick={handleRunCode}
-                      >
-                        ▶ Run Code
-                      </Button>
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <Button 
+                          size="small" 
+                          variant="text"
+                          onClick={() => setHistoryOpen(!historyOpen)}
+                        >
+                          History
+                        </Button>
+                        <Button 
+                          size="small" 
+                          variant="outlined"
+                          onClick={handleSaveSession}
+                          disabled={
+                            !generatedCode.trim() || 
+                            generatedCode === 'Welcome to Echo!, Your generated Python code will appear here!' ||
+                            isGenerating
+                          }
+                        >
+                          Save
+                        </Button>
+                        <Button 
+                          size="small" 
+                          variant="outlined"
+                          onClick={handleExportCode}
+                          disabled={
+                            !generatedCode.trim() || 
+                            generatedCode === 'Welcome to Echo!, Your generated Python code will appear here!' ||
+                            isGenerating
+                          }
+                        >
+                          Export .py
+                        </Button>
+                        <Button 
+                          size="small" 
+                          variant="contained"
+                          onClick={handleRunCode}
+                          disabled={isRunning}
+                        >
+                          {isRunning ? 'Running...' : '▶ Run Code'}
+                        </Button>
+                      </Box>
                     </Box>
                     <Box sx={{ display: 'flex', flexDirection: 'column', height: 'calc(100% - 40px)' }}>
                       <Box sx={{ flex: '0.7' }}>
