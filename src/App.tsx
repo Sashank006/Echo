@@ -45,6 +45,7 @@ function App() {
       setSavedSessions(JSON.parse(saved));
     }
   }, []);
+  
 
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];
@@ -168,6 +169,12 @@ function App() {
       localStorage.setItem('echo-sessions', JSON.stringify(updatedSessions));
     };
 
+    const handleDeleteSession = (sessionId) => {
+      const updatedSessions = savedSessions.filter(session => session.id !== sessionId);
+      setSavedSessions(updatedSessions);
+      localStorage.setItem('echo-sessions', JSON.stringify(updatedSessions));
+    };
+
   return (
     <ThemeProvider theme={darkTheme}>
       <CssBaseline/>
@@ -183,9 +190,45 @@ function App() {
 
           <Box sx={{ display: 'flex', flex: 1 }}>
             {historyOpen && (
-              <Box sx={{ width: '300px', p: 2 }}></Box>
+              <Box sx={{ width: '300px', p: 2, bgcolor: 'background.paper', borderRight: '1px solid', borderColor: 'divider' }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                  <Typography variant="h6">History</Typography>
+                  <Button size="small" onClick={() => setHistoryOpen(false)}>Close</Button>
+                </Box>
+                
+                {savedSessions.length === 0 ? (
+                  <Typography variant="body2" color="text.secondary">
+                    No saved sessions yet.
+                  </Typography>
+                ) : (
+                  <List>
+                    {savedSessions.map((session) => (
+                      <ListItem key={session.id} sx={{ flexDirection: 'column', alignItems: 'stretch', p: 1, mb: 1 }}>
+                        <Typography variant="subtitle2">{session.name}</Typography>
+                        <Typography variant="caption" color="text.secondary">{session.timestamp}</Typography>
+                        <Box sx={{ mt: 1 }}>
+                          <Button size="small" onClick={() => {
+                            setGeneratedCode(session.code);
+                            setSpokenText(session.prompt);
+                            setHistoryOpen(false);
+                          }}>
+                            Load
+                          </Button>
+                          <Button 
+                            size="small" 
+                            color="error" 
+                            onClick={() => handleDeleteSession(session.id)}
+                          >
+                            Delete
+                          </Button>
+                        </Box>
+                      </ListItem>
+                    ))}
+                  </List>
+                )}
+              </Box>
             )}
-            <Box sx={{ width:'300px', p:2}}> {/*left panel*/}
+           <Box sx={{ width: historyOpen ? '250px' : '300px', p:2}}> {/*left panel*/}
               <Paper sx={{height:'100%', bgcolor:'background.paper'}}>
                 <Button
                 variant='contained'
@@ -238,7 +281,7 @@ function App() {
            <Box sx={{ flex: 1, p:2}}> {/*right panel*/}
               <Paper sx= {{height:'100%', overflow:'hidden', p: 2}}>
                 <Box sx={{ display: 'flex', width: '100%', gap: 2, height: '100%' }}>
-                  <Box sx={{ flex: 1 }}>
+                 <Box sx={{ flex: historyOpen ? 0.45 : 1 }}>
                     <Typography variant="subtitle2" sx={{ mb: 1 }}>Original Code</Typography>
                     <Editor
                       height="calc(100% - 30px)"
@@ -256,7 +299,7 @@ function App() {
                       }}
                     />
                   </Box>
-                  <Box sx={{ flex: 1 }}>
+                  <Box sx={{ flex: historyOpen ? 0.55 : 1 }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                       <Typography variant="subtitle2">Generated Code</Typography>
                       <Box sx={{ display: 'flex', gap: 1 }}>
