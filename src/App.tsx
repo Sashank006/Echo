@@ -119,6 +119,11 @@ function App() {
       setConsoleOutput('Running...');
       
       setTimeout(() => {
+        if (generatedCode.includes('if ') && !generatedCode.includes('if ') + ':') {
+          setConsoleOutput('SyntaxError: Missing colon after if statement');
+          setIsRunning(false);
+          return;
+        }
         const printMatches = generatedCode.match(/print\s*\(\s*([^)]+)\s*\)/g);
         if (printMatches) {
           const output = printMatches.map(match => {
@@ -296,6 +301,11 @@ function App() {
                         roundedSelection: false,
                         scrollBeyondLastLine: false,
                         automaticLayout: true,
+                        showUnused: true,
+                        folding: true,
+                        foldingHighlight: true,
+                        bracketMatching: 'always',
+                        matchBrackets: 'always',
                       }}
                     />
                   </Box>
@@ -359,6 +369,11 @@ function App() {
                             roundedSelection: false,
                             scrollBeyondLastLine: false,
                             automaticLayout: true,
+                            showUnused: true,
+                            folding: true,
+                            foldingHighlight: true,
+                            bracketMatching: 'always',
+                            matchBrackets: 'always',
                           }}
                         />
                       </Box>
