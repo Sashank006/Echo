@@ -87,7 +87,7 @@ function App() {
   const handleGenerateCode = async () => {
     setIsGenerating(true);
     try {
-      const response = await fetch('/api/generate', {
+      const response = await fetch('https://echo-backend-3yuq5lkrtq-uc.a.run.app', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
