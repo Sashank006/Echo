@@ -19,7 +19,7 @@ app.add_middleware(
 GEMINI_API_KEY = os.getenv("GEMINI_KEY")
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    model = genai.GenerativeModel('gemini-2.0-flash-exp')
     print("Gemini API configured successfully")
 else:
     print("Warning: GEMINI_API_KEY not found in environment variables")
@@ -105,6 +105,10 @@ async def health_check():
         "service": "voice-to-code-api", 
         "gemini_configured": GEMINI_API_KEY is not None
     }
+
+@app.get("/")
+def root():
+    return {"message": "Backend is running"}
 
 if __name__ == "__main__":
     import uvicorn

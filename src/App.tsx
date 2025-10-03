@@ -85,9 +85,13 @@ function App() {
   };
 
   const handleGenerateCode = async () => {
+    if (!spokenText || spokenText.trim() === '') {
+      alert('Please provide a prompt first by using voice input or typing');
+      return;
+    }
     setIsGenerating(true);
     try {
-      const response = await fetch('https://echo-backend-3yuq5lkrtq-uc.a.run.app', {
+      const response = await fetch('https://echo-backend-3yuq5lkrtq-uc.a.run.app/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
