@@ -1,46 +1,80 @@
-# Getting Started with Create React App
+# Echo - Voice-Controlled Python Code Generator
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A web application that converts voice commands into Python code using AI. Speak your requirements and get working Python code instantly.
 
-## Available Scripts
+**Live Demo:** [https://echo-voicecoder.web.app](https://echo-voicecoder.web.app)
 
-In the project directory, you can run:
+## Features
 
-### `npm start`
+- **Voice Recognition**: Uses Web Speech API for real-time voice-to-text conversion
+- **AI Code Generation**: Powered by Google Gemini 2.0 Flash for intelligent code creation
+- **Interactive Editor**: Monaco Editor with syntax highlighting and IntelliSense
+- **File Management**: Upload existing Python files and modify them with voice commands
+- **Code Execution**: Test your code directly in the browser
+- **Session History**: Save and restore previous coding sessions
+- **Export Functionality**: Download generated code as .py files
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+## Tech Stack
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+### Frontend
+- React 18 with TypeScript
+- Material-UI for modern UI components
+- Monaco Editor (VS Code's editor)
+- Web Speech API
+- Firebase Hosting
 
-### `npm test`
+### Backend
+- FastAPI (Python)
+- Google Gemini 2.0 Flash API
+- Docker containerization
+- Google Cloud Run
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Architecture
 
-### `npm run build`
+The application uses a microservices architecture:
+- Frontend hosted on Firebase for global CDN distribution
+- Backend API containerized and deployed on Cloud Run for serverless scaling
+- Communication via RESTful API with CORS enabled
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## Local Setup
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### Backend
+```bash
+cd backend
+pip install -r requirements.txt
+echo "GEMINI_KEY=your_api_key" > .env
+uvicorn main:app --reload --port 8000
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+### Frontend
+```bash
+npm install
+npm start
+```
 
-### `npm run eject`
+Visit `http://localhost:3000` to use the app locally.
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+## Deployment
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+The app is deployed using:
+- **Frontend**: Firebase Hosting (`firebase deploy --only hosting`)
+- **Backend**: Google Cloud Run with automated builds from Docker
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+## Project Structure
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+```
+echo/
+├── backend/
+│   ├── main.py              # FastAPI application
+│   ├── requirements.txt     # Python dependencies
+│   └── Dockerfile           # Container configuration
+├── src/
+│   └── App.tsx              # Main React component
+├── build/                   # Production build
+└── firebase.json            # Hosting configuration
+```
 
-## Learn More
+## Author
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
+**Sashank**  
+GitHub: [@Sashank006](https://github.com/Sashank006)
